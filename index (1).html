@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Combat Strength Tracker</title>
+    <meta name="description" content="Strength & Krav Maga Combat Workout Tracker">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --bg-deep: #0f172a;
+            --bg-card: rgba(255,255,255,0.06);
+            --bg-card-hover: rgba(255,255,255,0.1);
+            --border: rgba(255,255,255,0.1);
+            --border-accent: rgba(220,38,38,0.4);
+            --red-primary: #dc2626;
+            --red-glow: rgba(220,38,38,0.3);
+            --amber: #f59e0b;
+            --amber-soft: rgba(245,158,11,0.2);
+            --green: #22c55e;
+            --green-soft: rgba(34,197,94,0.15);
+            --blue: #3b82f6;
+            --blue-soft: rgba(59,130,246,0.15);
+            --purple: #a855f7;
+            --purple-soft: rgba(168,85,247,0.2);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-dim: #64748b;
+        }
+        body { 
+            font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-deep);
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: 12px;
+            padding-bottom: 80px;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 0%, rgba(220,38,38,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(59,130,246,0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .container { max-width: 600px; margin: 0 auto; position: relative; z-index: 1; }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(15,23,42,0.8) 100%);
+            border: 1px solid var(--border-accent);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            top: -50%; right: -30%;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(220,38,38,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .header h1 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            background: linear-gradient(135deg, #fff 0%, #fca5a5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+        .header p { color: var(--text-secondary); font-size: 13px; font-weight: 500; }
+        .header .combat-badge {
+            display: inline-block;
+            margin-top: 8px;
+            background: var(--red-glow);
+            border: 1px solid rgba(220,38,38,0.5);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #fca5a5;
+        }
+
+        /* TIMER OVERLAY — CENTERED FULL SCREEN */
+        .timer-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .timer-overlay.active { display: flex; }
+        .timer-overlay .timer-ring {
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            border: 4px solid rgba(220,38,38,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            position: relative;
+            margin-bottom: 24px;
+        }
+        .timer-overlay .timer-ring svg {
+            position: absolute;
+            top: -4px; left: -4px;
+            width: 228px; height: 228px;
+            transform: rotate(-90deg);
+        }
+        .timer-overlay .timer-ring svg circle {
+            fill: none;
+            stroke: var(--red-primary);
+            stroke-width: 4;
+            stroke-dasharray: 690;
+            stroke-dashoffset: 0;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear;
+        }
+        .timer-time {
+            font-family: 'Oswald', sans-serif;
+            font-size: 64px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+        .timer-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .timer-exercise-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 16px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 28px;
+            text-align: center;
+            padding: 0 20px;
+        }
+        .timer-stop-btn {
+            background: var(--red-primary);
+            border: none;
+            padding: 14px 48px;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-family: 'Oswald', sans-serif;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .timer-stop-btn:active { transform: scale(0.96); }
+
+        /* NAV */
+        .nav { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+        .nav-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.2s;
+        }
+        .nav-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+        .nav-btn:not(:disabled):active { background: var(--bg-card-hover); }
+        .day-card {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+        }
+        .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .day-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .day-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .reset-btn {
+            background: rgba(239,68,68,0.15);
+            border: 1px solid rgba(239,68,68,0.25);
+            padding: 8px 10px;
+            border-radius: 8px;
+            color: #fca5a5;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .progress { margin: 10px 0; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+        .progress-bar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--red-primary), var(--amber)); border-radius: 3px; transition: width 0.5s ease; }
+        .day-info { display: flex; gap: 14px; font-size: 11px; color: var(--text-secondary); margin-top: 10px; }
+
+        /* WARMUP / COOLDOWN */
+        .warmup, .cooldown {
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border: 1px solid;
+        }
+        .warmup { background: var(--amber-soft); border-color: rgba(245,158,11,0.25); }
+        .cooldown { background: var(--blue-soft); border-color: rgba(59,130,246,0.25); }
+        .warmup h3, .cooldown h3 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+        }
+        .warmup h3 { color: var(--amber); }
+        .cooldown h3 { color: var(--blue); }
+        .warmup p { font-size: 12px; color: #fde68a; line-height: 1.5; }
+        .cooldown p { font-size: 12px; color: #bfdbfe; line-height: 1.5; }
+
+        /* EXERCISES */
+        .exercises { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+        .exercise {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            transition: all 0.3s;
+        }
+        .exercise.completed { background: var(--green-soft); border-color: rgba(34,197,94,0.35); }
+        .exercise.posture-key { border-left: 3px solid var(--purple); }
+        .exercise.combat-key { border-left: 3px solid var(--red-primary); }
+        .exercise-content { display: flex; gap: 12px; }
+        .check-btn {
+            background: none; border: none; color: rgba(255,255,255,0.3);
+            cursor: pointer; padding: 0; font-size: 24px; flex-shrink: 0;
+            transition: transform 0.15s;
+        }
+        .check-btn:active { transform: scale(1.15); }
+        .exercise.completed .check-btn { color: var(--green); }
+        .exercise-info { flex: 1; min-width: 0; }
+        .exercise-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px; }
+        .exercise-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+        }
+        .badge {
+            font-size: 9px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Source Sans 3', sans-serif;
+            font-weight: 600;
+        }
+        .badge-posture { background: var(--purple-soft); color: #d8b4fe; }
+        .badge-combat { background: var(--red-glow); color: #fca5a5; }
+        .badge-kb { background: rgba(245,158,11,0.25); color: #fcd34d; }
+        .exercise.kb-key { border-left: 3px solid var(--amber); }
+        .info-btn {
+            background: none; border: none; color: var(--text-dim);
+            cursor: pointer; padding: 4px; font-size: 16px;
+        }
+        .exercise-sets { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+
+        /* WEIGHT SECTION */
+        .weight-section {
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.15);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .weight-label { font-size: 10px; color: var(--text-secondary); margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 1px; }
+        .weight-input-group { display: flex; gap: 8px; align-items: center; }
+        .weight-input {
+            flex: 1;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: white;
+            font-size: 14px;
+            font-family: 'Source Sans 3', sans-serif;
+        }
+        .weight-input:focus { outline: none; border-color: var(--blue); background: rgba(255,255,255,0.12); }
+        .weight-input::placeholder { color: var(--text-dim); }
+        .weight-unit { font-size: 11px; color: var(--text-secondary); }
+        .recommended-weight { font-size: 10px; color: var(--amber); margin-top: 4px; font-style: italic; }
+
+        /* NOTES */
+        .exercise-notes {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        /* REST BUTTON */
+        .rest-btn {
+            width: 100%;
+            background: rgba(220,38,38,0.15);
+            border: 1px solid rgba(220,38,38,0.25);
+            padding: 10px;
+            border-radius: 8px;
+            color: #fca5a5;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .rest-btn:active { background: rgba(220,38,38,0.25); }
+
+        /* TIPS */
+        .tips {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .tips h3 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+        }
+        .tips ul { list-style: none; }
+        .tips li { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; line-height: 1.5; display: flex; gap: 8px; }
+
+        /* WEEK NAV */
+        .week-nav {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .week-nav h3 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+        }
+        .week-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .week-day {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .week-day:active { background: var(--bg-card-hover); }
+        .week-day.active { background: rgba(220,38,38,0.15); border-color: rgba(220,38,38,0.4); }
+        .week-day-num {
+            font-family: 'Oswald', sans-serif;
+            font-size: 10px;
+            color: var(--text-dim);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .week-day-name { font-size: 11px; margin-top: 3px; line-height: 1.3; color: var(--text-secondary); }
+
+        .hidden { display: none !important; }
+
+        /* INSTALL BANNER */
+        .install-banner {
+            display: none;
+            background: linear-gradient(135deg, var(--red-primary), #991b1b);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            align-items: center;
+            gap: 12px;
+        }
+        .install-banner.show { display: flex; }
+        .install-banner-text { flex: 1; }
+        .install-banner-text strong {
+            font-family: 'Oswald', sans-serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .install-banner-text span { font-size: 11px; color: rgba(255,255,255,0.75); }
+        .install-btn {
+            background: white;
+            color: var(--red-primary);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .dismiss-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Install banner for PWA -->
+    <div class="install-banner" id="install-banner">
+        <div class="install-banner-text">
+            <strong>Install App</strong>
+            <span>Add to home screen for quick access</span>
+        </div>
+        <button class="install-btn" id="install-btn" onclick="installApp()">Install</button>
+        <button class="dismiss-btn" onclick="dismissInstall()">✕</button>
+    </div>
+
+    <div class="header">
+        <h1>🥊 Combat Strength Tracker</h1>
+        <p>Age: 49 | Weight: 80kg | 60 min/session</p>
+        <div class="combat-badge">Full Body ×3 + Kettlebell ×2</div>
+    </div>
+
+    <!-- TIMER OVERLAY — Full screen centered -->
+    <div class="timer-overlay" id="timer-overlay">
+        <div class="timer-exercise-name" id="timer-exercise"></div>
+        <div class="timer-ring">
+            <svg viewBox="0 0 228 228">
+                <circle id="timer-circle" cx="114" cy="114" r="110" />
+            </svg>
+            <div class="timer-time" id="timer-display">0:00</div>
+            <div class="timer-label">Rest</div>
+        </div>
+        <button class="timer-stop-btn" onclick="stopTimer()">Stop</button>
+    </div>
+
+    <div class="nav">
+        <button class="nav-btn" onclick="prevDay()" id="prev-btn">◀</button>
+        <div class="day-card">
+            <div class="day-header">
+                <div>
+                    <div class="day-title" id="day-title">Day 1</div>
+                    <div class="day-subtitle" id="day-name">Push Day</div>
+                </div>
+                <button class="reset-btn" onclick="resetDay()" title="Reset day progress">↻</button>
+            </div>
+            <div class="progress">
+                <div class="progress-label">
+                    <span>Progress</span>
+                    <span id="progress-text">0/7 exercises</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="day-info">
+                <div>⏱️ <span id="duration">60 min</span></div>
+                <div style="flex: 1;">🎯 <span id="focus">Focus area</span></div>
+            </div>
+        </div>
+        <button class="nav-btn" onclick="nextDay()" id="next-btn">▶</button>
+    </div>
+
+    <div class="warmup">
+        <h3>🔥 Warm-up</h3>
+        <p id="warmup-text"></p>
+    </div>
+
+    <div class="exercises" id="exercises"></div>
+
+    <div class="cooldown">
+        <h3>❄️ Cool-down</h3>
+        <p id="cooldown-text"></p>
+    </div>
+
+    <div class="tips">
+        <h3>💡 Strength & Size Progression</h3>
+        <ul>
+            <li><span style="color: var(--amber);">•</span> Big compound lifts (squat, bench, deadlift, rows): add 2.5kg when you hit all reps with solid form</li>
+            <li><span style="color: var(--green);">•</span> Each muscle gets hit 3× per week (Full Body + KB overlap) — optimal for growth</li>
+            <li><span style="color: var(--blue);">•</span> Full Body days = heavy (6-8 reps) for strength. KB days = moderate for endurance and cardio</li>
+            <li><span style="color: var(--purple);">•</span> Face pulls appear 3× per week — your shoulders need this to handle the pressing volume</li>
+            <li><span style="color: #f87171;">•</span> At 49, recovery is king — the 2 rest days are non-negotiable, sleep 7-8 hrs</li>
+            <li><span style="color: var(--amber);">•</span> Deload every 6-8 weeks: reduce all weights by 40% for one full week</li>
+            <li><span style="color: var(--green);">•</span> Eat 1.6-2g protein per kg bodyweight (128-160g/day at 80kg) for muscle growth</li>
+            <li><span style="color: var(--blue);">•</span> Schedule: Sun-Mon-Tue-Wed-Thu or any 5 consecutive days with 2 rest days</li>
+        </ul>
+    </div>
+
+    <div class="week-nav">
+        <h3>📅 Weekly Structure</h3>
+        <div class="week-grid" id="week-grid"></div>
+    </div>
+</div>
+
+<script>
+    // ===== WORKOUT PLAN — FULL BODY ×3 + KETTLEBELL CONDITIONING ×2 =====
+    // Day 1: Full Body A (Squat focus)
+    // Day 2: KB Conditioning — Combat Cardio
+    // Day 3: Full Body B (Hinge focus)
+    // Day 4: KB Conditioning — Strength Endurance
+    // Day 5: Full Body C (Unilateral + Accessory)
+    // Days 6-7: Rest
+    const workoutPlan = [
+        {
+            day: 1,
+            name: "Full Body A — Squat Focus",
+            duration: "60-65 min",
+            focus: "Quad-dominant legs, Horizontal push, Vertical pull, Heavy compounds",
+            warmup: "10 min: Jump rope 2 min, leg swings, hip circles, bodyweight squats, band pull-aparts, shoulder rotations",
+            exercises: [
+                { name: "Barbell Back Squat", sets: "4 × 6-8 reps", rest: 150, notes: "Primary leg builder. Bar on upper traps, squat to parallel or below. Brace core hard, drive through heels. Add 2.5kg when you complete all 4×8 with good form.", combatKey: true, hasWeight: true, recommendedWeight: "40-70kg (progress weekly)" },
+                { name: "Barbell Bench Press", sets: "4 × 6-8 reps", rest: 120, notes: "Primary horizontal push. Retract shoulder blades, arch slightly, lower to mid-chest, press explosively. Builds raw pushing power for strikes and clinch frames.", combatKey: true, hasWeight: true, recommendedWeight: "40-60kg (progress weekly)" },
+                { name: "Weighted Pull-ups / Cable Pulldowns", sets: "4 × 6-10 reps", rest: 120, notes: "Primary vertical pull. If you can do 3×8 bodyweight pull-ups, start adding weight with belt or dumbbell between feet. If not, use cable pulldowns heavy. Essential for clinch dominance.", combatKey: true, hasWeight: true, recommendedWeight: "BW or BW+5-10kg / 40-55kg cable" },
+                { name: "Dumbbell Shoulder Press", sets: "3 × 8-10 reps", rest: 90, notes: "Seated or standing. Press overhead with control. Builds overhead strength for framing and clinch control.", combatKey: true, hasWeight: true, recommendedWeight: "12-18kg per dumbbell" },
+                { name: "Barbell / Dumbbell Rows", sets: "3 × 8-10 reps", rest: 90, notes: "Bent over, pull to lower chest. Squeeze shoulder blades at top. Balances all the pressing and builds thick back for grappling.", combatKey: true, hasWeight: true, recommendedWeight: "30-50kg barbell or 16-22kg per DB" },
+                { name: "Face Pulls", sets: "3 × 15 reps", rest: 60, notes: "Rear delts and external rotators. Pull to face, rotate hands outward at end. Non-negotiable for shoulder health with this much pressing.", postureKey: true, hasWeight: true, recommendedWeight: "10-15kg cable" },
+                { name: "Barbell Curl", sets: "2 × 10-12 reps", rest: 60, notes: "Standing, controlled. No swinging. Builds arm mass and clinch pulling strength. Straight bar or EZ-bar.", hasWeight: true, recommendedWeight: "15-25kg barbell" }
+            ],
+            cooldown: "5 min: Quad stretch, chest doorway stretch, lat stretch, shoulder cross-body stretch"
+        },
+        {
+            day: 2,
+            name: "Kettlebell — Combat Cardio",
+            duration: "45-50 min",
+            focus: "Cardiovascular conditioning, Explosive power, Fight-ready endurance",
+            warmup: "10 min: Shadow boxing 3 × 2 min rounds, arm circles, hip openers, light KB swings, prying goblet squats",
+            exercises: [
+                { name: "KB Swings", sets: "5 × 15 reps", rest: 45, notes: "The king of KB conditioning. Explosive hip snap — hips drive everything, arms are just hooks. This is your primary cardio builder. Stand tall and squeeze glutes at the top.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "20-28kg" },
+                { name: "KB Clean & Press (Alternating)", sets: "4 × 6 each side", rest: 60, notes: "Explosive clean to rack position, press overhead, lower and switch. Full-body coordination under fatigue — mimics the intensity of repeated striking in a fight.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "12-20kg" },
+                { name: "KB Snatch", sets: "3 × 8 each side", rest: 60, notes: "Explosive pull from floor to overhead in one motion. Total-body power and massive cardio demand. Start light until the hip-punch timing is solid.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "12-20kg" },
+                { name: "KB Sprawl to Swing", sets: "3 × 8 reps", rest: 60, notes: "Sprawl (takedown defense), jump to feet, immediately swing. Combat-specific conditioning simulating ground-to-standing transitions.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "12-16kg" },
+                { name: "KB Alternating Swings", sets: "3 × 20 reps (10 each)", rest: 45, notes: "Swing, switch hands at the top. Builds grip endurance, coordination, and anti-rotation core strength. Keep hips square — don't twist.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "12-20kg" },
+                { name: "KB Figure-8s", sets: "3 × 30s", rest: 45, notes: "Pass KB between legs in a figure-8 pattern. Stay low in a combat stance. Builds grip, coordination, and anti-rotation core.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "10-16kg" },
+                { name: "KB Loaded Carry Complex", sets: "2 × 3 min", rest: 90, notes: "Rack carry 30s each side → Farmer's carry 30s each side → Overhead carry 30s each side. Ultimate grip, core, and cardio finisher. Walk tall, breathe steady.", kbKey: true, combatKey: true, postureKey: true, hasWeight: true, recommendedWeight: "12-20kg" }
+            ],
+            cooldown: "10 min: Full body stretch — hip flexors, hamstrings, shoulders, thoracic spine, lats, wrists, deep breathing"
+        },
+        {
+            day: 3,
+            name: "Full Body B — Hinge Focus",
+            duration: "60-65 min",
+            focus: "Posterior chain, Horizontal pull, Vertical push, Grip strength",
+            warmup: "10 min: Light cardio 2 min, hip hinges bodyweight, band rows, arm circles, cat-cow, glute bridges",
+            exercises: [
+                { name: "Barbell Deadlift", sets: "4 × 5-6 reps", rest: 180, notes: "King of all lifts. Explosive hip extension builds total-body strength and power for strikes and takedown defense. Flat back, chest up, drive through floor. Lower reps, heavier weight than squat day.", postureKey: true, combatKey: true, hasWeight: true, recommendedWeight: "60-90kg (progress every 1-2 weeks)" },
+                { name: "Incline Dumbbell Press", sets: "4 × 8-10 reps", rest: 90, notes: "Upper chest and front delt development. Set bench to 30°. Full ROM — deep stretch at bottom, lock out at top. Complements flat bench from Day 1.", hasWeight: true, recommendedWeight: "14-22kg per dumbbell" },
+                { name: "Barbell Bent-Over Rows", sets: "4 × 6-8 reps", rest: 120, notes: "Heavy horizontal pulling for back thickness. Hinge to ~45°, pull bar to lower chest, squeeze blades. Match your bench press intensity — back needs equal volume.", combatKey: true, hasWeight: true, recommendedWeight: "40-60kg barbell" },
+                { name: "Dumbbell Arnold Press", sets: "3 × 8-10 reps", rest: 90, notes: "Start palms facing you, rotate as you press. Hits all three delt heads through rotation — mirrors the rotational mechanics of striking.", combatKey: true, hasWeight: true, recommendedWeight: "10-16kg per dumbbell" },
+                { name: "Weighted Dips", sets: "3 × 6-10 reps", rest: 90, notes: "Lean forward slightly for chest emphasis, stay upright for tricep focus. Add weight with belt or dumbbell between feet when BW feels easy. Builds serious pressing mass.", hasWeight: true, recommendedWeight: "BW or BW+5-15kg" },
+                { name: "Face Pulls", sets: "3 × 15 reps", rest: 60, notes: "Rear delts and rotator cuff. Always include these — they protect your shoulders from the heavy pressing volume. External rotate at the end.", postureKey: true, hasWeight: true, recommendedWeight: "10-15kg cable" },
+                { name: "Farmer's Walks", sets: "3 × 40-60s", rest: 90, notes: "Heavy dumbbells at sides, walk with perfect posture. Shoulders packed, core braced. Builds iron grip, traps, core, and the combat-ready posture that doesn't break under pressure.", postureKey: true, combatKey: true, hasWeight: true, recommendedWeight: "24-36kg per hand" },
+                { name: "Hammer Curls", sets: "2 × 10-12 reps", rest: 60, notes: "Neutral grip targets brachialis and forearms — builds the thick arms and grip strength needed for clinch control.", hasWeight: true, recommendedWeight: "10-16kg per dumbbell" }
+            ],
+            cooldown: "5 min: Hamstring stretch, hip flexor stretch, chest stretch, spinal decompression hang"
+        },
+        {
+            day: 4,
+            name: "Kettlebell — Strength Endurance",
+            duration: "50 min",
+            focus: "Muscular endurance, Functional strength, Core stability, Grip",
+            warmup: "10 min: Arm circles, hip circles, KB halos, prying goblet squats, single-leg RDL bodyweight, thoracic rotations",
+            exercises: [
+                { name: "KB Goblet Squats", sets: "4 × 10 reps", rest: 75, notes: "Hold heavy KB at chest, squat deep. Chest up, knees tracking over toes. Adds squat volume for the week at moderate load — builds endurance in the legs without frying your CNS.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "20-28kg" },
+                { name: "KB Single-Arm Press", sets: "4 × 8 each side", rest: 75, notes: "Clean to rack, press overhead with control. The offset load forces your core to stabilize hard — builds functional pressing strength that transfers to combat.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "14-22kg" },
+                { name: "KB Single-Arm Rows", sets: "4 × 10 each side", rest: 60, notes: "Hinged position, pull to hip, squeeze blade at top. Second pulling stimulus for the week. Builds back thickness and unilateral grip strength.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "18-26kg" },
+                { name: "KB Romanian Deadlift", sets: "3 × 12 reps", rest: 75, notes: "Two KBs, hip hinge with flat back. Higher reps than barbell deadlift day — builds hamstring endurance and posterior chain work capacity.", kbKey: true, postureKey: true, hasWeight: true, recommendedWeight: "2 × 16-22kg" },
+                { name: "KB Floor Press", sets: "3 × 10 each side", rest: 60, notes: "Lie on floor, press from rack position. Floor limits ROM for shoulder safety. Adds pressing volume without shoulder stress. Control the negative.", kbKey: true, hasWeight: true, recommendedWeight: "14-22kg" },
+                { name: "KB Turkish Get-Up", sets: "3 × 3 each side", rest: 90, notes: "Slow and deliberate. Every rep is a full-body strength exercise. Builds shoulder stability, hip mobility, and ground-to-standing combat readiness. Quality over speed.", kbKey: true, combatKey: true, hasWeight: true, recommendedWeight: "10-18kg" },
+                { name: "KB Halos", sets: "3 × 8 each direction", rest: 45, notes: "Circle KB around head. Tight core, controlled movement. Builds shoulder mobility and rotator cuff endurance — prehab for all the heavy pressing.", kbKey: true, postureKey: true, hasWeight: true, recommendedWeight: "8-14kg" },
+                { name: "KB Plank Pull-Through", sets: "3 × 8 each side", rest: 45, notes: "High plank, drag KB under body from side to side. Anti-rotation core endurance that directly translates to ground defense and clinch stability.", kbKey: true, postureKey: true, hasWeight: true, recommendedWeight: "10-16kg" }
+            ],
+            cooldown: "5 min: Shoulder stretches, hip flexor stretch, thoracic spine rotation, deep breathing"
+        },
+        {
+            day: 5,
+            name: "Full Body C — Unilateral & Accessory",
+            duration: "60-65 min",
+            focus: "Single-limb strength, Muscle balance, Weak points, Size work",
+            warmup: "10 min: Light cardio 2 min, leg swings, band walks, arm circles, push-ups, thoracic rotations",
+            exercises: [
+                { name: "Bulgarian Split Squats", sets: "3 × 8-10 each leg", rest: 90, notes: "Rear foot on bench. The best single-leg exercise. Builds strength balance between legs, ankle stability, and the single-leg power needed for kicks and fighting stance.", combatKey: true, hasWeight: true, recommendedWeight: "12-18kg per dumbbell" },
+                { name: "Dumbbell Floor Press", sets: "4 × 8-10 reps", rest: 90, notes: "Lie on floor, press from bottom. Limited ROM protects shoulders while still building chest and tricep mass. Pause at the bottom for 1s.", hasWeight: true, recommendedWeight: "16-24kg per dumbbell" },
+                { name: "Single-Arm Dumbbell Rows", sets: "4 × 8-10 each side", rest: 75, notes: "Hand and knee on bench, heavy row. Pull to hip — let the shoulder blade retract fully. Builds unilateral back strength for grabbing and controlling opponents.", combatKey: true, hasWeight: true, recommendedWeight: "20-28kg" },
+                { name: "Walking Lunges", sets: "3 × 12 steps each leg", rest: 75, notes: "Controlled stride — don't rush. Builds single-leg stability and endurance. Add a slight forward lean to bias glutes and hamstrings.", combatKey: true, hasWeight: true, recommendedWeight: "12-18kg per dumbbell" },
+                { name: "Lateral Raises", sets: "3 × 12-15 reps", rest: 60, notes: "Builds shoulder width and cap. Slight bend in elbows, lead with elbows, control the negative. Lighter weight, higher reps — this is a size exercise.", hasWeight: true, recommendedWeight: "7-12kg per dumbbell" },
+                { name: "Cable Tricep Pushdowns", sets: "3 × 12-15 reps", rest: 60, notes: "Elbows locked at sides, push straight down. Squeeze at the bottom. Tricep isolation adds arm mass and elbow extension strength for striking.", hasWeight: true, recommendedWeight: "15-25kg cable" },
+                { name: "Incline Dumbbell Curls", sets: "3 × 10-12 reps", rest: 60, notes: "Set bench to ~30°, let arms hang behind body. Maximum bicep stretch and contraction. Builds the bicep peak and pulling strength.", hasWeight: true, recommendedWeight: "8-14kg per dumbbell" },
+                { name: "Face Pulls", sets: "3 × 15 reps", rest: 45, notes: "Third session of face pulls this week — that's intentional. Your shoulders need this much rear delt and rotator cuff work to handle the pressing volume safely.", postureKey: true, hasWeight: true, recommendedWeight: "10-15kg cable" },
+                { name: "Dead Hangs", sets: "2 × 30-45s", rest: 60, notes: "Hang from bar with full bodyweight. Grip endurance, spinal decompression, and lat stretch. Perfect way to end the week.", combatKey: true, hasWeight: false }
+            ],
+            cooldown: "5 min: Full body stretch — quads, hamstrings, hip flexors, chest, shoulders, wrists"
+        }
+    ];
+
+    let currentDay = 0;
+    let completedExercises = {};
+    let exerciseWeights = {};
+    let timerInterval = null;
+    let timeRemaining = 0;
+    let totalTime = 0;
+
+    function loadProgress() {
+        try {
+            const saved = localStorage.getItem('combatWorkoutProgress');
+            if (saved) completedExercises = JSON.parse(saved);
+            const savedWeights = localStorage.getItem('combatExerciseWeights');
+            if (savedWeights) exerciseWeights = JSON.parse(savedWeights);
+        } catch(e) {}
+    }
+
+    function saveProgress() {
+        localStorage.setItem('combatWorkoutProgress', JSON.stringify(completedExercises));
+        localStorage.setItem('combatExerciseWeights', JSON.stringify(exerciseWeights));
+    }
+
+    function renderDay() {
+        const day = workoutPlan[currentDay];
+        document.getElementById('day-title').textContent = `Day ${day.day}`;
+        document.getElementById('day-name').textContent = day.name;
+        document.getElementById('duration').textContent = day.duration;
+        document.getElementById('focus').textContent = day.focus;
+        document.getElementById('warmup-text').textContent = day.warmup;
+        document.getElementById('cooldown-text').textContent = day.cooldown;
+        document.getElementById('prev-btn').disabled = currentDay === 0;
+        document.getElementById('next-btn').disabled = currentDay === workoutPlan.length - 1;
+        renderExercises();
+        updateProgress();
+        renderWeekNav();
+    }
+
+    function renderExercises() {
+        const day = workoutPlan[currentDay];
+        const container = document.getElementById('exercises');
+        container.innerHTML = '';
+
+        day.exercises.forEach((ex, idx) => {
+            const key = `${currentDay}-${idx}`;
+            const weightKey = `${currentDay}-${idx}-weight`;
+            const isCompleted = completedExercises[key];
+            const savedWeight = exerciseWeights[weightKey] || '';
+
+            const div = document.createElement('div');
+            let classes = 'exercise';
+            if (isCompleted) classes += ' completed';
+            if (ex.postureKey) classes += ' posture-key';
+            else if (ex.kbKey) classes += ' kb-key';
+            else if (ex.combatKey) classes += ' combat-key';
+            div.className = classes;
+
+            let weightHTML = '';
+            if (ex.hasWeight) {
+                weightHTML = `
+                    <div class="weight-section">
+                        <label class="weight-label">💪 Weight Used</label>
+                        <div class="weight-input-group">
+                            <input 
+                                type="text" 
+                                class="weight-input" 
+                                placeholder="e.g. 20kg, band+5kg"
+                                value="${savedWeight}"
+                                onchange="saveWeight(${currentDay}, ${idx}, this.value)"
+                                inputmode="text"
+                            >
+                        </div>
+                        <div class="recommended-weight">💡 ${ex.recommendedWeight}</div>
+                    </div>
+                `;
+            }
+
+            let badges = '';
+            if (ex.postureKey) badges += '<span class="badge badge-posture">Posture</span>';
+            if (ex.combatKey) badges += '<span class="badge badge-combat">Combat</span>';
+            if (ex.kbKey) badges += '<span class="badge badge-kb">Kettlebell</span>';
+
+            div.innerHTML = `
+                <div class="exercise-content">
+                    <button class="check-btn" onclick="toggleExercise(${idx})">
+                        ${isCompleted ? '✓' : '○'}
+                    </button>
+                    <div class="exercise-info">
+                        <div class="exercise-header">
+                            <div class="exercise-name">
+                                ${ex.name}
+                                ${badges}
+                            </div>
+                            <button class="info-btn" onclick="toggleInfo(${idx})">ⓘ</button>
+                        </div>
+                        <div class="exercise-sets">${ex.sets}</div>
+                        ${weightHTML}
+                        <div class="exercise-notes hidden" id="notes-${idx}">${ex.notes}</div>
+                        <button class="rest-btn" onclick="startTimer(${ex.rest}, '${ex.name.replace(/'/g, "\\'")}')">
+                            ⏱️ Rest (${ex.rest}s)
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function saveWeight(dayIdx, exIdx, weight) {
+        const weightKey = `${dayIdx}-${exIdx}-weight`;
+        exerciseWeights[weightKey] = weight;
+        saveProgress();
+    }
+
+    function toggleExercise(idx) {
+        const key = `${currentDay}-${idx}`;
+        completedExercises[key] = !completedExercises[key];
+        saveProgress();
+        renderDay();
+    }
+
+    function toggleInfo(idx) {
+        document.getElementById(`notes-${idx}`).classList.toggle('hidden');
+    }
+
+    function updateProgress() {
+        const day = workoutPlan[currentDay];
+        const completed = day.exercises.filter((_, i) => completedExercises[`${currentDay}-${i}`]).length;
+        const total = day.exercises.length;
+        const percent = (completed / total) * 100;
+        document.getElementById('progress-text').textContent = `${completed}/${total} exercises`;
+        document.getElementById('progress-fill').style.width = `${percent}%`;
+    }
+
+    function resetDay() {
+        if (!confirm('Reset all progress for this day?')) return;
+        const day = workoutPlan[currentDay];
+        day.exercises.forEach((_, idx) => { delete completedExercises[`${currentDay}-${idx}`]; });
+        saveProgress();
+        renderDay();
+    }
+
+    function prevDay() { if (currentDay > 0) { currentDay--; renderDay(); window.scrollTo(0,0); } }
+    function nextDay() { if (currentDay < workoutPlan.length - 1) { currentDay++; renderDay(); window.scrollTo(0,0); } }
+
+    // TIMER — Full screen overlay
+    function startTimer(seconds, exercise) {
+        totalTime = seconds;
+        timeRemaining = seconds;
+        document.getElementById('timer-exercise').textContent = exercise;
+        document.getElementById('timer-overlay').classList.add('active');
+        updateTimerDisplay();
+        updateTimerRing();
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+            if (timeRemaining <= 0) {
+                stopTimer();
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                alert('Rest complete! Ready for next set.');
+            } else {
+                updateTimerDisplay();
+                updateTimerRing();
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        document.getElementById('timer-overlay').classList.remove('active');
+        timeRemaining = 0;
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(timeRemaining / 60);
+        const secs = timeRemaining % 60;
+        document.getElementById('timer-display').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateTimerRing() {
+        const circle = document.getElementById('timer-circle');
+        const circumference = 2 * Math.PI * 110; // r=110
+        const progress = timeRemaining / totalTime;
+        circle.style.strokeDashoffset = circumference * (1 - progress);
+    }
+
+    function renderWeekNav() {
+        const container = document.getElementById('week-grid');
+        container.innerHTML = '';
+        workoutPlan.forEach((d, idx) => {
+            const div = document.createElement('div');
+            div.className = `week-day ${idx === currentDay ? 'active' : ''}`;
+            div.onclick = () => { currentDay = idx; renderDay(); window.scrollTo(0,0); };
+            div.innerHTML = `
+                <div class="week-day-num">Day ${d.day}</div>
+                <div class="week-day-name">${d.name.split(' — ')[0]}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // ===== PWA INSTALL =====
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('install-banner').classList.add('show');
+    });
+
+    function installApp() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((result) => {
+                deferredPrompt = null;
+                document.getElementById('install-banner').classList.remove('show');
+            });
+        }
+    }
+
+    function dismissInstall() {
+        document.getElementById('install-banner').classList.remove('show');
+    }
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    loadProgress();
+    renderDay();
+</script>
+</body>
+</html>
